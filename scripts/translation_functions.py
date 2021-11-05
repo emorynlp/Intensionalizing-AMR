@@ -9,6 +9,8 @@ def translation_function(graph, tree_depth, world, store):
     free = set()
     triple_index = 0
 
+    # Remove QPs and negation from graph and store them
+    graph, store = neg_store(graph, store)
     graph, store = quant_store(graph, tree_depth, world, store)
 
     # Translate root
@@ -132,6 +134,22 @@ def close(lf, free, world, store):
     lf = LambdaExpression(world_var.variable, truth_conditions)  # abstract over world variable
 
     return lf, store
+
+
+def neg_store(graph, store):
+
+    for triple in graph:
+        if triple[1] == ':polarity':
+            var = sem(triple[2])
+            graph.remove(triple)
+            neg = Negation()
+            store[var] = neg
+
+            for triple2 in graph:
+                if triple2[0] == triple[2]:
+                    graph.remove(triple2)
+
+    return graph, store
 
 
 def quant_store(graph, tree_depth, world, store):
