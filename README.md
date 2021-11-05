@@ -4,4 +4,4 @@
 - node_depth.py : uses penman.Graph.epidata to create tree information stored as a dictionary of triple-depth key-value pairs.
 - translation_functions.py : contains multiple translation functions.
 - World.py : defines the World class.
-- Quantifiers.py : defines Existential class, Universal class, and HigherOrder class for representing quantificational determiners.
+- Operators.py : defines Existential class, Universal class, and HigherOrder class for representing quantificational determiners. Defines Negation, And, Or classes for propositional negation and connectivs.
