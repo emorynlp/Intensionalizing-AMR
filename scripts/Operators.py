@@ -22,7 +22,7 @@ class HigherOrder:
         self.semantics = sem(f'\\P Q w.({quantifier}(\\x. P(x,w),\\x. Q(x,w)))')
         self.evaluate = self.semantics(lf).simplify()
 
-        
+
 class Negation:
 
     def __init__(self):
@@ -30,5 +30,18 @@ class Negation:
 
     def apply(self, lf):
         return self.semantics(lf).simplify()
-    
-    
+
+
+class And:
+
+    def __init__(self, lf1, lf2):
+        self.semantics = sem(r'\P Q w.(P(w) & Q(w))')
+        self.evaluate = self.semantics(lf1, lf2)
+
+
+class Or:
+
+    def __init__(self, lf1, lf2):
+        self.semantics = sem(r'\P Q w.(P(w) | Q(w))')
+        self.evaluate = self.semantics(lf1, lf2)
+
