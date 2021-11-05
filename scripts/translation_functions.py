@@ -9,9 +9,8 @@ def translation_function(graph, tree_depth, world, store):
     free = set()
     triple_index = 0
 
-    # Remove QPs and negation from graph and store them
-    graph, store = neg_store(graph, store)
     graph, store = quant_store(graph, tree_depth, world, store)
+    graph, store = neg_store(graph, store)
 
     # Translate root
     logical_form, free, triple_index = translate(graph, free, tree_depth, triple_index, world, store)
@@ -20,8 +19,7 @@ def translation_function(graph, tree_depth, world, store):
     while triple_index < len(graph):
         lf, free, triple_index = translate(graph, free, tree_depth, triple_index, world, store)
 
-        prop_and = sem(r'\P Q w.(P(w) & Q(w))')
-        logical_form = prop_and(logical_form, lf)
+        logical_form = And(logical_form, lf).evaluate
 
     logical_form, store = close(logical_form, free, world, store)
 
@@ -81,8 +79,7 @@ def disjunction(graph, tree_depth, triple, world, store):
     for remaining_triple in disjuncts[1:]:
         disjunct_index = graph.index(remaining_triple)
         disjunct, triple_index = translate_subgraph(graph, tree_depth, disjunct_index, world, store)
-        prop_or = sem(r'\P Q w.(P(w) | Q(w))')
-        disjunction_lf = prop_or(disjunction_lf, disjunct)
+        disjunction_lf = Or(disjunction_lf, disjunct).evaluate
 
     return disjunction_lf, triple_index
 
@@ -97,8 +94,7 @@ def conjunction(graph, tree_depth, triple, world, store):
     for remaining_triple in conjuncts[1:]:
         conjunct_index = graph.index(remaining_triple)
         conjunct, triple_index = translate_subgraph(graph, tree_depth, conjunct_index, world, store)
-        prop_and = sem(r'\P Q w.(P(w) & Q(w))')
-        conjunction_lf = prop_and(conjunction_lf, conjunct)
+        conjunction_lf = And(conjunction_lf, conjunct).evaluate
 
     return conjunction_lf, triple_index
 
@@ -219,9 +215,13 @@ def scope_assignment(graph, tree_depth, triple_index, world, store):
     # pop GQs from store
     for triple in scope_order:
         var = sem(triple[2])
-        gq = store.pop(var)
-        scope = LambdaExpression(var.variable, lf)
-        lf = gq(scope).simplify()
+        if isinstance(store[var], Negation):
+            neg = store[var]
+            lf = neg.apply(lf)
+        else:
+            gq = store.pop(var)
+            scope = LambdaExpression(var.variable, lf)
+            lf = gq(scope).simplify()
 
     return lf, store, triple_index
 
