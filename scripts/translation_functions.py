@@ -1,5 +1,5 @@
 from nltk.sem.logic import LambdaExpression, ExistsExpression
-from Quantifiers import *
+from Operators import *
 
 sem = Expression.fromstring
 
