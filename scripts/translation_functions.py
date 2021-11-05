@@ -15,7 +15,7 @@ def translation_function(graph, tree_depth, world, store):
     # Translate root
     logical_form, free, triple_index = translate(graph, free, tree_depth, triple_index, world, store)
 
-    # Translate remaining graph and iteratively join with prop_and
+    # Translate remaining graph and iteratively join with And
     while triple_index < len(graph):
         lf, free, triple_index = translate(graph, free, tree_depth, triple_index, world, store)
 
@@ -177,6 +177,7 @@ def quant_store(graph, tree_depth, world, store):
             to_translate = [x for x in subgraph if x[1] != ':quant']
             var = sem(var)
             store[var] = '_'    # This place holder keeps the variable in the store while the restrictor lf built
+                                # to stop the variable being closed within the restrictor
             restrictor_lf = translation_function(to_translate, tree_depth, world, store)
 
             # Store GQ in store
