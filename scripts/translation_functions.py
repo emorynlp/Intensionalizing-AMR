@@ -176,8 +176,8 @@ def quant_store(graph, tree_depth, world, store):
             # Translate generalized quantifiers
             to_translate = [x for x in subgraph if x[1] != ':quant']
             var = sem(var)
-            store[var] = '_'    # This place holder keeps the variable in the store while the restrictor lf built
-                                # to stop the variable being closed within the restrictor
+            store[var] = '_'    # This place holder keeps the variable in the store while the restrictor lf 
+                                # This stops the variable being existentially closed within the restrictor
             restrictor_lf = translation_function(to_translate, tree_depth, world, store)
 
             # Store GQ in store
