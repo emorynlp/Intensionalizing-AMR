@@ -1,5 +1,9 @@
 # Intensionalizing-AMR
 
+Accompanying code for Williamson et al. (2021). Intensionalizing Abstract Meaning Representations: Non-Veridicality and Scope. Proceedings of The Joint 15th Linguistic Annotation Workshop and 3rd Designing Meaning Representations Workshop.
+
+## Contents
+
 - main.py : converts AMR penman.Graph objects into nltk.sem.logic.Expression objects.
 - node_depth.py : uses penman.Graph.epidata to create tree information stored as a dictionary of triple-depth key-value pairs.
 - translation_functions.py : contains multiple translation functions.
