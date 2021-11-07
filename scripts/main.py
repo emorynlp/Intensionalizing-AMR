@@ -9,7 +9,7 @@ into nltk.sem.logic.Expression objects.
 """
 
 if __name__ == '__main__':
-    
+
     # reentrant node
     ex1 = "(a / admire-01 :ARG0 (b / boy) :ARG1 b))"
 
@@ -23,17 +23,21 @@ if __name__ == '__main__':
     ex4 = "(t / think-01 :ARG0 (b / boy) :content (s / scope :ARG0 v :pred (h / hope-01 :ARG0 (g / girl)" \
           " :content (b2 / buy-01 :ARG0 g :ARG1 (v / violin :quant a)))))"
 
+    # two scope nodes
+    ex5 = "(s / scope :ARG0 b :pred (t / think-01 :ARG0 (b / boy :quant every) :content (s2 / scope :ARG0 b2 " \
+          " :ARG1 g :pred (r / read-01 :ARG0 (g / girl :quant a) :ARG1 (b2 / book :quant every)))))" \
+
     # disjunction and conjunction
-    ex5 = "(o / or :op1 (r / rain) :op2 (a / and :op1 (s / sun) :op2 (s2 / snow)))"
+    ex6 = "(o / or :op1 (r / rain) :op2 (a / and :op1 (s / sun) :op2 (s2 / snow)))"
 
     # wide scope negation
-    ex6 = "(s / scope :ARG0 n :ARG1 g :pred (a / arrive-01 :ARG0 (g / girl :quant every) :polarity (n / -)))"
+    ex7 = "(s / scope :ARG0 n :ARG1 g :pred (a / arrive-01 :ARG0 (g / girl :quant every) :polarity n))"
 
     # higher-order quantifiers
-    ex7 = "(s / scope :ARG0 t :ARG1 w :pred (t2 / touch :ARG0 (t / table :quant most) " \
-          ":ARG1 (w / wall :quant exactly-one)))"  
+    ex8 = "(s / scope :ARG0 t :ARG1 w :pred (t2 / touch :ARG0 (t / table :quant most) " \
+          ":ARG1 (w / wall :quant exactly-one)))"
 
-    for ex in [ex1, ex2, ex3, ex4, ex5, ex6, ex7]:
+    for ex in [ex1, ex2, ex3, ex4, ex5, ex6, ex7, ex8]:
         print(f'[[ {ex} ]]')
         ex = ex.replace('-', r'_')
         g = penman.decode(ex)
@@ -45,6 +49,3 @@ if __name__ == '__main__':
 
         print('=', logicalForm)
         print('-' * 20)
-
-
-
