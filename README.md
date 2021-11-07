@@ -1,6 +1,6 @@
 # Intensionalizing-AMR
 
-Accompanying code for Williamson et al. (2021). Intensionalizing Abstract Meaning Representations: Non-Veridicality and Scope. Proceedings of The Joint 15th Linguistic Annotation Workshop and 3rd Designing Meaning Representations Workshop.
+Accompanying code for Williamson et al. (2021). Intensionalizing Abstract Meaning Representations: Non-Veridicality and Scope. In _Proceedings of The Joint 15th Linguistic Annotation Workshop and 3rd Designing Meaning Representations Workshop_.
 
 ## Contents
 
