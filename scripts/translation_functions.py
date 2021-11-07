@@ -5,77 +5,70 @@ sem = Expression.fromstring
 
 
 def translation_function(graph, tree_depth, world, store):
-
     free = set()
     triple_index = 0
 
-    graph, store = quant_store(graph, tree_depth, world, store)
-    graph, store = neg_store(graph, store)
+    # handle quantifiers and negation
+    graph, store = handle_quantifiers(graph, tree_depth, world, store)
+    graph, store = handle_negation(graph, store)
 
-    # Translate root
-    logical_form, free, triple_index = translate(graph, free, tree_depth, triple_index, world, store)
+    # translate root
+    logical_form, triple_index = translation_step(graph, free, tree_depth, triple_index, world, store)
 
-    # Translate remaining graph and iteratively join with And
+    # translate remaining graph and iteratively and join using And
     while triple_index < len(graph):
-        lf, free, triple_index = translate(graph, free, tree_depth, triple_index, world, store)
-
+        lf, triple_index = translation_step(graph, free, tree_depth, triple_index, world, store)
         logical_form = And(logical_form, lf).evaluate
 
-    logical_form, store = close(logical_form, free, world, store)
+    # return closed logical form
+    return close(logical_form, free, world, store)
 
-    return logical_form
 
-
-def translate(graph, free, tree_depth, triple_index, world, store):
-
+def translation_step(graph, free, tree_depth, triple_index, world, store):
     triple = graph[triple_index]
-
-    if triple[2] == 'scope':
-        lf, store, triple_index = scope_assignment(graph, tree_depth, triple_index, world, store)
-    elif triple[2] == 'and':
-        lf, triple_index = conjunction(graph, tree_depth, triple, world, store)
-    elif triple[2] == 'or':
-        lf, triple_index = disjunction(graph, tree_depth, triple, world, store)
-    elif triple[1] == ':content':
-        lf, triple_index = cont_assignment(graph, tree_depth, triple_index, world, store)
-    elif triple[1] == ':instance':
-        lf, free = instance_assignment(triple, free)
-        triple_index += 1
-    else:
-        lf = role_assignment(triple)
-        triple_index += 1
-
-    return lf, free, triple_index
-
-
-def instance_assignment(triple, free):
-    lf = sem(f'{triple[2]}({triple[0]})')
-    var = sem(triple[0])
-    free.add(var)
-    return lf, free
-
-
-def role_assignment(triple):
-    lf = sem(f'{triple[1][1:]}({triple[0]},{triple[2]})')
-    return lf
-
-
-def cont_assignment(graph, tree_depth, triple_index, world, store):
-
-    triple = graph[triple_index]
-    content_lf, triple_index = translate_subgraph(graph, tree_depth, triple_index, world, store)
-    world.increase()
-    lf = sem(f'cont({triple[0]},{content_lf})')
+    lf, triple_index = \
+        scope_assignment(graph, tree_depth, triple_index, world, store) if triple[2] == 'scope' else \
+        conjunction(graph, tree_depth, triple, world, store) if triple[2] == 'and' else \
+        disjunction(graph, tree_depth, triple, world, store) if triple[2] == 'or' else \
+        content_assignment(graph, tree_depth, triple, world, store) if triple[1] == ':content' else \
+        (instance_assignment(triple, free), triple_index + 1) if triple[1] == ':instance' else \
+        (role_assignment(triple), triple_index + 1)
     return lf, triple_index
 
 
+def instance_assignment(triple, free):
+    var = sem(triple[0])
+    pred = sem(triple[2])
+    free.add(var)
+    return pred(var)
+
+
+def role_assignment(triple):
+    rel = sem(triple[1][1:])
+    var1 = sem(triple[0])
+    var2 = sem(triple[2])
+    return rel(var1, var2)
+
+
+def content_assignment(graph, tree_depth, triple, world, store):
+    var = sem(triple[0])
+    cont_rel = sem(triple[1][1:])
+
+    # translate propositional scope of :content role
+    content_lf, triple_index = translate_subgraph(graph, tree_depth, graph.index(triple), world, store)
+
+    world.increase()
+    return cont_rel(var, content_lf), triple_index
+
+
 def disjunction(graph, tree_depth, triple, world, store):
+    disjuncts = [trip for trip in graph if (trip[0] == triple[0]) & (':op' in trip[1])]
 
-    disjuncts = [x for x in graph if (x[0] == triple[0]) & (':op' in x[1])]
-
+    # translate first disjunct
     disjunct1_index = graph.index(disjuncts[0])
     disjunction_lf, triple_index = translate_subgraph(graph, tree_depth, disjunct1_index, world, store)
 
+    # iteratively combine remaining disjuncts with Or
     for remaining_triple in disjuncts[1:]:
         disjunct_index = graph.index(remaining_triple)
         disjunct, triple_index = translate_subgraph(graph, tree_depth, disjunct_index, world, store)
@@ -85,12 +78,13 @@ def disjunction(graph, tree_depth, triple, world, store):
 
 
 def conjunction(graph, tree_depth, triple, world, store):
+    conjuncts = [trip for trip in graph if (trip[0] == triple[0]) & (':op' in trip[1])]
 
-    conjuncts = [x for x in graph if (x[0] == triple[0]) & (':op' in x[1])]
-
+    # translate first conjunct
     conjunct1_index = graph.index(conjuncts[0])
     conjunction_lf, triple_index = translate_subgraph(graph, tree_depth, conjunct1_index, world, store)
 
+    # iteratively combine remaining conjuncts with And
     for remaining_triple in conjuncts[1:]:
         conjunct_index = graph.index(remaining_triple)
         conjunct, triple_index = translate_subgraph(graph, tree_depth, conjunct_index, world, store)
@@ -100,11 +94,11 @@ def conjunction(graph, tree_depth, triple, world, store):
 
 
 def translate_subgraph(graph, tree_depth, triple_index, world, store):
-
     subgraph = []
     triple = graph[triple_index]
     triple_index += 1
 
+    # build subgraph by iterating through remaining graph triples, if depth of remaining_triple <= triple, break
     for remaining_triple in graph[triple_index:]:
         if tree_depth[remaining_triple] <= tree_depth[triple]:
             break
@@ -112,117 +106,129 @@ def translate_subgraph(graph, tree_depth, triple_index, world, store):
             subgraph.append(remaining_triple)
             triple_index += 1
 
-    subgraph_lf = translation_function(subgraph, tree_depth, world, store)
-
-    return subgraph_lf, triple_index
+    # translate subgraph and return it
+    return translation_function(subgraph, tree_depth, world, store), triple_index
 
 
 def close(lf, free, world, store):
 
-    world_var = sem(f'{world}')
-    truth_conditions = lf(world_var).simplify()  # Apply proposition to world variable
-
+    # remove variables in store from free
     free -= set([x for x in store])
 
+    # apply world variable to logical form
+    world_var = sem(f'{world}')
+    truth_conditions = lf(world_var).simplify()
+
+    # existentially close variables from free
     for var in free:
-        truth_conditions = ExistsExpression(var.variable, truth_conditions)     # Existentially close
+        truth_conditions = ExistsExpression(var.variable, truth_conditions)
 
-    lf = LambdaExpression(world_var.variable, truth_conditions)  # abstract over world variable
+    # abstract over world variable in lf and return lf
+    return LambdaExpression(world_var.variable, truth_conditions)
 
-    return lf, store
 
-
-def neg_store(graph, store):
-
+def handle_negation(graph, store):
     for triple in graph:
         if triple[1] == ':polarity':
             var = sem(triple[2])
+
+            # remove negation from graph
             graph.remove(triple)
-            neg = Negation()
-            store[var] = neg
 
-            for triple2 in graph:
-                if triple2[0] == triple[2]:
-                    graph.remove(triple2)
-
+            # store negation
+            store[var] = Negation()
     return graph, store
 
 
-def quant_store(graph, tree_depth, world, store):
+def handle_quantifiers(graph, tree_depth, world, store):
 
     for triple in graph:
         if triple[1] == ':quant':
-            var = triple[0]
 
-            # Find triple and index for start of restrictor argument
-            for triple2 in graph:
-                if (triple2[0] == var) & (triple2[1] == ':instance'):
-                    restrictor = triple2
-                    i_restrictor = graph.index(restrictor)
-                    break
+            # build generalized quantifier subgraph
+            subgraph = build_gq(graph, tree_depth, triple)
 
-            # Build restrictor subgraph by iterating through remaining triples, if tree_depth < triple, break
-            subgraph = []
-            for remaining_triple in graph[i_restrictor:]:
-                if tree_depth[remaining_triple] < tree_depth[restrictor]:
-                    break
-                else:
-                    subgraph.append(remaining_triple)
+            # remove generalized quantifier from the graph
+            [graph.remove(sub_triple) for sub_triple in subgraph]
 
-            # Remove generalized quantifiers from the graph
-            for sub_triple in subgraph:
-                graph.remove(sub_triple)
+            # translate restrictor
+            var = sem(triple[0])
+            restrictor_lf = translate_restrictor(subgraph, tree_depth, var, world, store)
 
-            # Translate generalized quantifiers
-            to_translate = [x for x in subgraph if x[1] != ':quant']
-            var = sem(var)
-            store[var] = '_'    # This place holder keeps the variable in the store while the restrictor lf 
-                                # This stops the variable being existentially closed within the restrictor
-            restrictor_lf = translation_function(to_translate, tree_depth, world, store)
+            # create generalized quantifier lf
+            determiner = triple[2]
+            gq = gq_lf(restrictor_lf, var, determiner)
 
-            # Store GQ in store
-            lambda_exp = LambdaExpression(var.variable, restrictor_lf)
-
-            if triple[2] in ['some', 'a', 'an', 'exists']:
-                existential = Existential(lambda_exp)
-                gq = existential.evaluate
-            elif triple[2] in ['every', 'each', 'all']:
-                universal = Universal(lambda_exp)
-                gq = universal.evaluate
-            else:
-                higher = HigherOrder(lambda_exp, triple[2])
-                gq = higher.evaluate
+            # store generalized quantifier in store
             store[var] = gq
 
     return graph, store
 
 
+def build_gq(graph, tree_depth, triple):
+
+    subgraph = []
+
+    # identify start of restrictor argument
+    for triple2 in [trip for trip in graph if (trip[0] == triple[0]) & (trip[1] == ':instance')]:
+
+        # build restrictor by iterating through remaining graph triples, if depth of remaining_triple < triple2, break
+        for remaining_triple in graph[graph.index(triple2):]:
+            if tree_depth[remaining_triple] < tree_depth[triple2]:
+                break
+            else:
+                subgraph.append(remaining_triple)
+
+    return subgraph
+
+
+def translate_restrictor(subgraph, tree_depth, var, world, store):
+
+    # keep var in store while restrictor lf is built (to avoid binding var in restrictor)
+    store[var] = 'place_holder'
+
+    to_translate = [trip for trip in subgraph if trip[1] != ':quant']
+    return translation_function(to_translate, tree_depth, world, store)
+
+
+def gq_lf(restrictor_lf, var, determiner):
+    lambda_exp = LambdaExpression(var.variable, restrictor_lf)
+    gq = \
+        Existential(lambda_exp).evaluate if determiner in ['some', 'a', 'an', 'exists'] else \
+        Universal(lambda_exp).evaluate if determiner in ['every', 'each', 'all'] else \
+        HigherOrder(lambda_exp, determiner).evaluate
+    return gq
+
+
 def scope_assignment(graph, tree_depth, triple_index, world, store):
-
     scope_node_var = graph[triple_index][0]
-    scope_order = []
 
-    # order GQs (in case not in order)
-    for triple in [x for x in graph if (x[0] == scope_node_var) & (':ARG' in x[1])]:
-        scope_order.append(triple)
-
+    # order generalized quantifiers (in case not in order)
+    scope_order = [triple for triple in graph if (triple[0] == scope_node_var) & (':ARG' in triple[1])]
     scope_order.sort(key=lambda x: x[1], reverse=True)
 
-    # translate the :pred argument
-    for triple in [x for x in graph if (x[0] == scope_node_var) & (x[1] == ':pred')]:
-        pred_index = graph.index(triple)
-        lf, triple_index = translate_subgraph(graph, tree_depth, pred_index, world, store)
+    # translate :pred argument
+    lf, triple_index = translate_pred(graph, tree_depth, scope_node_var, world, store)
 
-    # pop GQs from store
+    # pop generalized quantifiers in order, iteratively applying them to lf
     for triple in scope_order:
         var = sem(triple[2])
-        if isinstance(store[var], Negation):
-            neg = store[var]
-            lf = neg.apply(lf)
-        else:
-            gq = store.pop(var)
-            scope = LambdaExpression(var.variable, lf)
-            lf = gq(scope).simplify()
+        lf = pop_gqs(var, lf, store)
 
-    return lf, store, triple_index
+    return lf, triple_index
 
+
+def translate_pred(graph, tree_depth, scope_node_var, world, store):
+    for triple in graph:
+        if (triple[0] == scope_node_var) & (triple[1] == ':pred'):
+            return translate_subgraph(graph, tree_depth, graph.index(triple), world, store)
+
+
+def pop_gqs(var, lf, store):
+    if isinstance(store[var], Negation):
+        neg = store.pop(var)
+        return neg.apply(lf)
+    else:
+        gq = store.pop(var)
+        scope = LambdaExpression(var.variable, lf)
+        return gq(scope).simplify()
