@@ -11,8 +11,8 @@ Accompanying code for Williamson et al. (2021). Intensionalizing Abstract Meanin
 - Operators.py : defines Existential class, Universal class, and HigherOrder class for representing quantificational determiners. Defines Negation, And, Or classes for propositional negation and connectives.
 
 ## Contents `conversion-script`
-- convert_content_role.py : converts AMR :ARG-roles under intensional contexts to `:content` role.
-     - Mega-veridical verbs are extracted from the MegaVeridicality Project v1 (http://megaattitude.io/projects/mega-veridicality/)
+- convert_content_role.py : converts intensional AMR :ARGs to `:content` role.
+     - Uses list of verbs extracted from the MegaVeridicality Project v1 data set (http://megaattitude.io/projects/mega-veridicality/)
      - Reference: White, Aaron Steven, and Kyle Rawlins. 2018. The Role of Veridicality and Factivity in Clause Selection. In _Proceedings of the 48th Annual Meeting of the North East Linguistic Society_, edited by Sherry Hucklebridge and Max Nelson, 221–234. Amherst, MA: GLSA Publications.
 
 
